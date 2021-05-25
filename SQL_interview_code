@@ -1,0 +1,68 @@
+-- 1.	Найти сотрудников, у которых зарплата больше 50 000 рублей
+select name 
+from employee e
+where salary > 50000
+
+-- 2.	Найти отдел, в котором нет ни одного сотрудника
+select d2.id, d2.name
+from department d2 
+where not exists 
+(select e2.name from employee e2 
+join department d3 on d2.id = e2.department_id)
+
+-- 3.	Вывести название отдела, имена сотрудников отдела и имена их руководителей.
+select distinct d.name, e.name, e.chief_id 
+from department d 
+join employee e 
+on d.id = e.department_id 
+order by d.name 
+
+-- 3.1?  Требуется вывести только отделы, в которых есть хотя бы один сотрудник.
+select d.name 
+from department d 
+join employee e 
+on d.id = e.department_id 
+group by d.id, d.name 
+having count(e.name) != 0
+
+-- 4.	Вывести отдел и среднюю зарплату в этом отделе. Если в отделе нет сотрудников, то вывести 0
+select d2.name, AVG(e.salary)
+from department d2
+join employee e 
+on d2.id = e.department_id 
+group by d2.name
+order by d2.name
+
+-- 5.	Найти отделы, в которых средняя зарплата больше 50 000 рублей
+select d.name
+from department d
+join employee e2
+on d.id = e2.department_id 
+group by d.name
+having AVG(e2.salary) > 50000
+order by d.name
+
+-- 6.	Вывести название отдела и имя руководителя в этом отделе, 
+-- если зарплата руководителя отдела меньше, чем максимальная зарплата в этом отделе
+select distinct d.name, e.name
+from department d, employee e, employee c
+where
+    e.department_id = d.id and e.id = c.chief_id and 
+    e.salary < (select max(c_max.salary) 
+    from employee c_max 
+    where c_max.department_id = e.department_id)
+   
+-- 7.	Найти тех сотрудников, у которых руководитель работает не в их отделе
+with chief_out_of_dep as 
+	-- выбор номера отделов, где руководитель имеет сотрудников в другом отделе
+	(select distinct e.department_id, e.chief_id, e.name
+	from employee e 
+	join employee e2 
+	on e.id = e2.chief_id 
+	where e.department_id != e2.department_id and e.chief_id notnull)
+-- выбор имени сотрудников из выборки номеров отдела (выше)
+select distinct e3.name 
+from employee e3
+join chief_out_of_dep ch
+on e3.department_id = ch.department_id
+where e3.chief_id != ch.chief_id
